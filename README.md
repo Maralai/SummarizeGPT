@@ -68,8 +68,11 @@ C:\dev\edge\Edge\.gitignore
 ```
 python summarize_directory.py /path/to/directory --gitignore /path/to/.gitignore
 
-C:\dev\edge\Edge\plugins\storage_local
+C:\dev\edge\Edge\plugins\inference_resource_alert
 C:\dev\edge\Edge\.gitignore
+
+python summarize_directory.py C:/dev/edge/Edge/plugins/storage_local --gitignore C:\dev\edge\Edge\.gitignore
+```
 
 python summarize_directory.py C:/dev/edge/Edge/plugins/storage_local --gitignore C:\dev\edge\Edge\.gitignore
 ```

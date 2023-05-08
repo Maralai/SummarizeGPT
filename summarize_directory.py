@@ -23,6 +23,8 @@ def get_tree_view(directory, gitignore_file=None):
         gitignore = None
 
     for root, dirs, files in os.walk(directory):
+        if '.git' in root:
+            continue
         if gitignore:
             dirs[:] = [d for d in dirs if not gitignore(os.path.join(root, d))]
             files = [f for f in files if not gitignore(os.path.join(root, f))]
@@ -45,11 +47,13 @@ def get_file_contents(directory, gitignore_file=None, show_docker=False, show_on
         gitignore = None
 
     for root, _, files in os.walk(directory):
+        if '.git' in root:
+            continue
         if gitignore:
             files = [f for f in files if not gitignore(os.path.join(root, f))]
         for file in files:
             if not show_docker and not show_only_docker:
-                if file.lower().endswith(('.env')) or any(substring in file.lower() for substring in excluded_files):
+                if file.lower().endswith(('.env', 'md')) or any(substring in file.lower() for substring in excluded_files):
                     continue
             elif show_only_docker:
                 if not any(substring in file.lower() for substring in ['docker', 'Dockerfile', 'requirements.txt']):
@@ -65,8 +69,6 @@ def get_file_contents(directory, gitignore_file=None, show_docker=False, show_on
             except UnicodeDecodeError:
                 print(f"Skipping file {file_path}: unable to decode with UTF-8 encoding.")
     return file_contents
-
-
 
 def remove_empty_lines(text):
     return "\n".join([line for line in text.split("\n") if line.strip()])
@@ -84,8 +86,6 @@ def main():
     parser.add_argument('-d', '--show_docker', action='store_true', help='Include docker files')
     parser.add_argument('-o', '--show_only_docker', action='store_true', help='Show only docker files')
     args = parser.parse_args()
-
-    print("show_docker: ", args.show_docker, "\nshow_only_docker: ", args.show_only_docker)
 
     if args.show_docker and args.show_only_docker:
         print("Error: Cannot use both show_docker and show_only_docker options.")
