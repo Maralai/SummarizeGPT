@@ -22,4 +22,9 @@ setup(
         'Programming Language :: Python :: 3.9',
     ],
     install_requires=required,
+    entry_points={
+        'console_scripts': [
+            'SummarizeGPT=summarizeGPT.summarizeGPT:main',
+        ],
+    },
 )

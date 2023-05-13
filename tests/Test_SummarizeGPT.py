@@ -1,6 +1,6 @@
 import os
 import unittest
-from summarizeGPT.summarize_directory import summarize_directory
+from SummarizeGPT.SummarizeGPT import summarize_directory
 
 class TestSummarizeDirectory(unittest.TestCase):
     def setUp(self):

@@ -19,4 +19,4 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run tests
       run: |
-        python -m unittest tests/test_summarize_directory.py
+        python -m unittest tests/Test_SummarizeGPT.py
