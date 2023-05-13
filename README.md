@@ -1,4 +1,4 @@
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Maralai/SummarizeGPT/Test%20Summarize%20GPT)
+[![Test Summarize GPT](https://github.com/Maralai/SummarizeGPT/actions/workflows/python-app.yml/badge.svg)](https://github.com/Maralai/SummarizeGPT/actions/workflows/python-app.yml)
 
 # Code Summarization Tool
 
