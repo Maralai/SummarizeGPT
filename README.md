@@ -1,3 +1,6 @@
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Maralai/SummarizeGPT/Test%20Summarize%20GPT)
+
+
 # Code Summarization Tool
 
 This tool generates a summary of a directory's contents, including a tree view of its subdirectories and files, and the contents of each file. It can optionally exclude files listed in a .gitignore file, exclude or include Docker files, or filter files based on their extensions.
