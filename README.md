@@ -8,6 +8,12 @@ This tool generates a summary of a directory's contents, including a tree view o
 
 This tool can be run directly from the command line without installation. Just ensure you have Python installed and can run Python scripts.
 
+Otherwise, you can install this tool as a package using pip:
+
+```bash
+pip install summarizeGPT
+```
+
 ## Usage
 
 To use this tool, run the following command:
@@ -15,6 +21,13 @@ To use this tool, run the following command:
 ```
 python summarize_directory.py <directory_path> [--gitignore <gitignore_path>] [--include <file_extensions>] [--exclude <file_extensions>] [-d|--show_docker] [-o|--show_only_docker]
 ```
+
+Or with the package installed:
+```
+SummarizeGPT <directory_path> [--gitignore <gitignore_path>] [--include <file_extensions>] [--exclude <file_extensions>] [-d|--show_docker] [-o|--show_only_docker]
+```
+
+> From my expereince the command can be case insensitive. try summarizegpt for convenience. -MSH
 
 Where:
 

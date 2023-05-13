@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='SummarizeGPT',
-    version='1.0',
+    version='1.1',
     packages=find_packages(),
     description='Tool to summarize directories of code for prompting with ChatGPT',
     long_description=open('README.md').read(),
