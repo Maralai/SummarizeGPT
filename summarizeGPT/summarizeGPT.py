@@ -58,7 +58,7 @@ def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude
             if exclude_exts is not None and ext in exclude_exts:
                 continue
             if not show_docker and not show_only_docker:
-                if file.lower().endswith(('.env', 'license', 'gitignore', 'setup.py', '__init__.py', 'test_summarizegpt.py')) or any(substring in file.lower() for substring in excluded_files):
+                if file.lower().endswith(('.env', 'license', 'gitignore', 'setup.py', '__init__.py', 'test_summarize_gpt.py')) or any(substring in file.lower() for substring in excluded_files):
                     continue
             elif show_only_docker:
                 if not any(substring in file.lower() for substring in ['docker', 'Dockerfile', 'requirements.txt']):
