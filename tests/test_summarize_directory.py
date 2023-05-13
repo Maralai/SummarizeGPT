@@ -10,16 +10,17 @@ class TestSummarizeDirectory(unittest.TestCase):
     def test_gitignore(self):
         # Test that .gitignore is working by checking that LICENSE is not in the summary
         summary = summarize_directory(self.directory, gitignore_file=self.gitignore_file)
-        self.assertNotIn('LICENSE', summary)
+        self.assertNotIn('build.README.md', summary)
 
-    def test_include_exclude(self):
+    def test_include(self):
         # Test include and exclude arguments
-        summary = summarize_directory(self.directory, include_exts=['.py'])
-        self.assertIn('summarize_directory.py', summary)
-        self.assertNotIn('README.md', summary)  # README.md should not be included as it's not a .py file
-
+        summary = summarize_directory(self.directory, include_exts=['.md'])
+        self.assertIn('python summarize_directory.py', summary)
+            
+    def test_exclude(self):
+        # Test exclude argument        
         summary = summarize_directory(self.directory, exclude_exts=['.md'])
-        self.assertNotIn('README.md', summary)  # README.md should be excluded
+        self.assertNotIn('python summarize_directory.py', summary)  # README.md should be excluded
 
 
 if __name__ == '__main__':

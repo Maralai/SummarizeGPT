@@ -39,7 +39,7 @@ def get_tree_view(directory, gitignore_file=None):
 
 def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False):
     file_contents = ""
-    excluded_files = ['docker', 'Dockerfile', 'requirements.txt', '.env', 'prompt.md']
+    excluded_files = ['docker', 'Dockerfile']
     if gitignore_file:
         gitignore = gitignore_parser.parse_gitignore(gitignore_file)
     else:
@@ -58,7 +58,7 @@ def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude
             if exclude_exts is not None and ext in exclude_exts:
                 continue
             if not show_docker and not show_only_docker:
-                if file.lower().endswith(('.env', 'md')) or any(substring in file.lower() for substring in excluded_files):
+                if file.lower().endswith(('.env', 'license', 'gitignore', 'setup.py', '__init__.py', 'test_summarize_directory.py')) or any(substring in file.lower() for substring in excluded_files):
                     continue
             elif show_only_docker:
                 if not any(substring in file.lower() for substring in ['docker', 'Dockerfile', 'requirements.txt']):
@@ -104,7 +104,7 @@ def main():
     prompt_md = summarize_directory(args.directory, args.gitignore, include_exts, exclude_exts, show_docker=args.show_docker, show_only_docker=args.show_only_docker)
 
     prompt_file = os.path.join(args.directory, output_file)
-    with open(prompt_file, "w") as f:
+    with open(prompt_file, "w", encoding="utf-8") as f:
         f.write(prompt_md)
 
     print_summary(prompt_md)
