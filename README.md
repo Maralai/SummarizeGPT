@@ -193,7 +193,7 @@ def main():
 ```
 ---
 
-> Pretty cool, huh? Now someone just needs to implement it! -MSH
+> Pretty cool, huh? Now someone just needs to implement it on a new branch and submit a pull request! -MSH
 
 ## Contribute
 
