@@ -27,7 +27,7 @@ Or with the package installed:
 SummarizeGPT <directory_path> [--gitignore <gitignore_path>] [--include <file_extensions>] [--exclude <file_extensions>] [-d|--show_docker] [-o|--show_only_docker]
 ```
 
-> From my expereince the command can be case insensitive. try summarizegpt for convenience. -MSH
+> From my expereince on Windows the command can be case insensitive, try summarizegpt for convenience, however on Linux it is SummarizeGPT. -MSH
 
 Where:
 
