@@ -153,10 +153,16 @@ To implement AI code summarization, you can use OpenAI's GPT-3 or GPT-4 API. Kee
 Here is a rough skeleton of how you could modify your script:
 
 ```python
+import os
 import openai
 
-# Set up OpenAI API
-openai.api_key = 'your-api-key'
+# Load API key from environment variable
+api_key = os.environ.get('OPENAI_API_KEY')
+if api_key is None:
+    raise ValueError("OpenAI API key not found in environment variable.")
+
+# Set the API key
+openai.api_key = api_key
 
 def summarize_code(code):
     response = openai.Completion.create(
