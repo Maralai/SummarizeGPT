@@ -1,9 +1,29 @@
 import argparse
 import os
 import sys
+import openai
 import gitignore_parser
 
 output_file = "Context_for_ChatGPT.md"
+MODEL = "gpt-3.5-turbo"
+
+def get_openai_response(prompt):
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    response = openai.ChatCompletion.create(
+        model=MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an assistant to help with python programming"
+            },
+            {
+                "role": "user",
+                "content": "Summarize the following python code in one 15 word or less sentence: {}".format(prompt)
+            },
+        ],
+        temperature=0.0,
+    )
+    return response['choices'][0]['message']['content']
 
 def summarize_directory(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False):
     directory = directory.replace("\\", "/")
@@ -70,7 +90,11 @@ def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     contents = f.read()
-                    file_contents += f"## {file_path}\n\n```\n{remove_empty_lines(contents)}\n```\n\n"
+                    if ext == '.py':
+                        description = get_openai_response(contents)
+                        file_contents += f"## {file_path}\n### {description}\n\n```\n{remove_empty_lines(contents)}\n```\n\n"
+                    else:
+                        file_contents += f"## {file_path}\n\n```\n{remove_empty_lines(contents)}\n```\n\n"
             except UnicodeDecodeError:
                 print(f"Skipping file {file_path}: unable to decode with UTF-8 encoding.")
     return file_contents
