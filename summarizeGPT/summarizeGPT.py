@@ -1,16 +1,36 @@
 import argparse
 import os
 import sys
+import openai
 import gitignore_parser
 
 output_file = "Context_for_ChatGPT.md"
+MODEL = "gpt-3.5-turbo"
 
-def summarize_directory(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False):
+def get_openai_response(prompt):
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    response = openai.ChatCompletion.create(
+        model=MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an assistant to help with python programming"
+            },
+            {
+                "role": "user",
+                "content": "Summarize the following python code in one 15 word or less sentence: {}".format(prompt)
+            },
+        ],
+        temperature=0.0,
+    )
+    return response['choices'][0]['message']['content']
+
+def summarize_directory(directory, gitignore_file=None, include_exts=None, exclude_exts=None, summarize_python=False, show_docker=False, show_only_docker=False):
     directory = directory.replace("\\", "/")
     prompt_md = f"# Summary of directory: {directory}\n\n"
     tree_view = get_tree_view(directory, gitignore_file=gitignore_file)
     prompt_md += "```\n" + tree_view + "\n```\n\n"
-    file_contents = get_file_contents(directory, gitignore_file, include_exts, exclude_exts, show_docker=show_docker, show_only_docker=show_only_docker)
+    file_contents = get_file_contents(directory, gitignore_file, include_exts, exclude_exts, summarize_python, show_docker=show_docker, show_only_docker=show_only_docker)
     prompt_md += file_contents
     return prompt_md
 
@@ -37,7 +57,7 @@ def get_tree_view(directory, gitignore_file=None):
             tree_view += f"{sub_indent}{file}\n"
     return tree_view
 
-def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False):
+def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude_exts=None, summarize_python=False, show_docker=False, show_only_docker=False):
     file_contents = ""
     excluded_files = ['docker', 'Dockerfile']
     if gitignore_file:
@@ -70,10 +90,17 @@ def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     contents = f.read()
-                    file_contents += f"## {file_path}\n\n```\n{remove_empty_lines(contents)}\n```\n\n"
+                    if ext == '.py' and summarize_python:
+                        description = get_openai_response(contents).replace("\n", " ")
+                        description = description.translate(str.maketrans({"*": r"\*", "_": r"\_", "#": r"\#", "!": r"\!"}))
+                        file_contents += f"## {file_path}\n\n### Description: {description}\n\n```\n{remove_empty_lines(contents)}\n```\n\n"
+                    else:
+                        file_contents += f"## {file_path}\n\n```\n{remove_empty_lines(contents)}\n```\n\n"
             except UnicodeDecodeError:
                 print(f"Skipping file {file_path}: unable to decode with UTF-8 encoding.")
     return file_contents
+
+
 
 def remove_empty_lines(text):
     return "\n".join([line for line in text.split("\n") if line.strip()])
@@ -92,16 +119,22 @@ def main():
     parser.add_argument('--exclude', type=str, help='Comma-separated list of file extensions to exclude')
     parser.add_argument('-d', '--show_docker', action='store_true', help='Include docker files')
     parser.add_argument('-o', '--show_only_docker', action='store_true', help='Show only docker files')
+    parser.add_argument('-s', '--summarize_python', action='store_true', help='Summarize python files using OpenAI')
     args = parser.parse_args()
+
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if args.summarize_python and openai_api_key is None:
+        print("Error: Please set 'OPENAI_API_KEY' in your environment variables.")
+        sys.exit(1)
 
     if args.show_docker and args.show_only_docker:
         print("Error: Cannot use both show_docker and show_only_docker options.")
-        sys.exit()
+        sys.exit(1)
 
     include_exts = [".{}".format(ext.lower()) for ext in args.include.split(',')] if args.include else None
     exclude_exts = [".{}".format(ext.lower()) for ext in args.exclude.split(',')] if args.exclude else None
 
-    prompt_md = summarize_directory(args.directory, args.gitignore, include_exts, exclude_exts, show_docker=args.show_docker, show_only_docker=args.show_only_docker)
+    prompt_md = summarize_directory(args.directory, args.gitignore, include_exts, exclude_exts, args.summarize_python, show_docker=args.show_docker, show_only_docker=args.show_only_docker)
 
     prompt_file = os.path.join(args.directory, output_file)
     with open(prompt_file, "w", encoding="utf-8") as f:
