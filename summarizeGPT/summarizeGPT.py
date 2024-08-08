@@ -5,12 +5,12 @@ import gitignore_parser
 
 output_file = "Context_for_ChatGPT.md"
 
-def summarize_directory(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False):
+def summarize_directory(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False, max_lines=None):
     directory = directory.replace("\\", "/")
     prompt_md = f"# Summary of directory: {directory}\n\n"
     tree_view = get_tree_view(directory, gitignore_file=gitignore_file)
     prompt_md += "```\n" + tree_view + "\n```\n\n"
-    file_contents = get_file_contents(directory, gitignore_file, include_exts, exclude_exts, show_docker=show_docker, show_only_docker=show_only_docker)
+    file_contents = get_file_contents(directory, gitignore_file, include_exts, exclude_exts, show_docker=show_docker, show_only_docker=show_only_docker, max_lines=max_lines)
     prompt_md += file_contents
     return prompt_md
 
@@ -37,7 +37,7 @@ def get_tree_view(directory, gitignore_file=None):
             tree_view += f"{sub_indent}{file}\n"
     return tree_view
 
-def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False):
+def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False, max_lines=None):
     file_contents = ""
     excluded_files = ['docker', 'Dockerfile']
     if gitignore_file:
@@ -69,7 +69,10 @@ def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude
             file_path = os.path.join(root, file).replace("\\", "/")
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
-                    contents = f.read()
+                    contents = f.readlines()
+                    if max_lines is not None:
+                        contents = contents[:max_lines]
+                    contents = ''.join(contents)
                     file_contents += f"## {file_path}\n\n```\n{remove_empty_lines(contents)}\n```\n\n"
             except UnicodeDecodeError:
                 print(f"Skipping file {file_path}: unable to decode with UTF-8 encoding.")
@@ -92,6 +95,7 @@ def main():
     parser.add_argument('--exclude', type=str, help='Comma-separated list of file extensions to exclude')
     parser.add_argument('-d', '--show_docker', action='store_true', help='Include docker files')
     parser.add_argument('-o', '--show_only_docker', action='store_true', help='Show only docker files')
+    parser.add_argument('-n', '--max-lines', type=int, default=None, help='Maximum number of lines to include from each file')
     args = parser.parse_args()
 
     if args.show_docker and args.show_only_docker:
@@ -100,8 +104,8 @@ def main():
 
     include_exts = [".{}".format(ext.lower()) for ext in args.include.split(',')] if args.include else None
     exclude_exts = [".{}".format(ext.lower()) for ext in args.exclude.split(',')] if args.exclude else None
-
-    prompt_md = summarize_directory(args.directory, args.gitignore, include_exts, exclude_exts, show_docker=args.show_docker, show_only_docker=args.show_only_docker)
+    
+    prompt_md = summarize_directory(args.directory, args.gitignore, include_exts, exclude_exts, show_docker=args.show_docker, show_only_docker=args.show_only_docker, max_lines=args.max_lines)
 
     prompt_file = os.path.join(args.directory, output_file)
     with open(prompt_file, "w", encoding="utf-8") as f:
