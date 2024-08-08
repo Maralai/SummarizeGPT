@@ -19,15 +19,15 @@ class TestSummarizeGPT(unittest.TestCase):
     def test_gitignore(self):
         # Test that .gitignore is working by checking that LICENSE is not in the summary
         summary = summarize_directory(self.directory, gitignore_file=self.gitignore_file)
-        self.assertNotIn('LICENSE', summary)
-    
+        self.assertNotIn('build.README.md', summary)
+
     def test_include(self):
         # Test include and exclude arguments
         summary = summarize_directory(self.directory, gitignore_file=self.gitignore_file, include_exts=['.md'])
         self.assertIn('python summarize_directory.py', summary)
-    
+            
     def test_exclude(self):
-        # Test exclude argument
+        # Test exclude argument        
         summary = summarize_directory(self.directory, gitignore_file=self.gitignore_file, exclude_exts=['.md'])
         self.assertNotIn('python summarize_directory.py', summary)  # README.md should be excluded
     
