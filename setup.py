@@ -7,7 +7,7 @@ setup(
     name='SummarizeGPT',
     version='1.2',
     packages=find_packages(),
-    description='Tool to summarize directories of code for prompting with ChatGPT',
+    description='Tool to summarize directories of code for prompting with LLMs',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author='Matt Harrison',
