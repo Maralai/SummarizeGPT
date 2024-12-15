@@ -86,11 +86,11 @@ class TestSummarizeGPT(unittest.TestCase):
             verbose=False
         )
 
-        with self.assertLogs(logger, level='ERROR') as captured:
+        # Capture log messages directly
+        with patch('logging.Logger.error') as mock_logger:
             main()
-            self.assertIn(
-                'ERROR:SummarizeGPT:Cannot use both show_docker and show_only_docker options.',
-                captured.output
+            mock_logger.assert_called_once_with(
+                'Cannot use both show_docker and show_only_docker options.'
             )
             mock_exit.assert_called_once_with(1)
 
@@ -118,12 +118,12 @@ class TestSummarizeGPT(unittest.TestCase):
                 raise IOError("Permission denied")
             return original_open(*args, **kwargs)
 
+        # Capture log messages directly
         with patch('builtins.open', side_effect=mock_open_wrapper):
-            with self.assertLogs(logger, level='ERROR') as captured:
+            with patch('logging.Logger.error') as mock_logger:
                 main()
-                self.assertIn(
-                    'ERROR:SummarizeGPT:Failed to write output file: Permission denied',
-                    captured.output
+                mock_logger.assert_called_once_with(
+                    'Failed to write output file: Permission denied'
                 )
                 mock_exit.assert_called_once_with(1)
 
