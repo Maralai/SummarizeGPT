@@ -88,8 +88,10 @@ class TestSummarizeGPT(unittest.TestCase):
 
         with self.assertLogs(logger, level='ERROR') as captured:
             main()
-            self.assertEqual(captured.records[0].getMessage(),
-                'Cannot use both show_docker and show_only_docker options.')
+            self.assertIn(
+                'ERROR:SummarizeGPT:Cannot use both show_docker and show_only_docker options.',
+                captured.output
+            )
             mock_exit.assert_called_once_with(1)
 
     @patch('argparse.ArgumentParser.parse_args')
@@ -119,8 +121,10 @@ class TestSummarizeGPT(unittest.TestCase):
         with patch('builtins.open', side_effect=mock_open_wrapper):
             with self.assertLogs(logger, level='ERROR') as captured:
                 main()
-                self.assertEqual(captured.records[0].getMessage(),
-                            'Failed to write output file: Permission denied')
+                self.assertIn(
+                    'ERROR:SummarizeGPT:Failed to write output file: Permission denied',
+                    captured.output
+                )
                 mock_exit.assert_called_once_with(1)
 
 if __name__ == '__main__':
