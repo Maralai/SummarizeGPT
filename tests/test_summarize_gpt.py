@@ -109,10 +109,14 @@ class TestSummarizeGPT(unittest.TestCase):
             verbose=False
         )
 
-        mock_open = MagicMock()
-        mock_open.side_effect = IOError("Permission denied")
-        
-        with patch('builtins.open', mock_open):
+        # Create a mock that only affects the output file
+        original_open = open
+        def mock_open_wrapper(*args, **kwargs):
+            if args and isinstance(args[0], str) and args[0].endswith(output_file):
+                raise IOError("Permission denied")
+            return original_open(*args, **kwargs)
+
+        with patch('builtins.open', side_effect=mock_open_wrapper):
             with self.assertLogs(logger, level='ERROR') as captured:
                 main()
                 self.assertEqual(captured.records[0].getMessage(),
