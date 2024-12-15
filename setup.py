@@ -1,3 +1,4 @@
+import subprocess
 import setuptools
 from setuptools import setup
 import os
@@ -8,10 +9,23 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 # Get version from git tag with fallback
 def get_version():
+    # First try: Get version from git tag
+    try:
+        # Get the latest tag using git describe
+        version = subprocess.check_output(['git', 'describe', '--tags']).decode().strip()
+        if version.startswith('v'):
+            version = version.lstrip('v')
+        return version
+    except:
+        pass
+
+    # Second try: Get version from GITHUB_REF_NAME (CI environment)
     version = os.environ.get('GITHUB_REF_NAME')
     if version and version.startswith('v'):
         return version.lstrip('v')
-    return '0.0.0'  # fallback version
+
+    # Fallback: Read from version file or use default
+    return '1.3'  # final fallback version
 
 setup(
     name="SummarizeGPT",
