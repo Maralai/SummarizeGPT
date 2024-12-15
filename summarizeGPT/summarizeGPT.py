@@ -1,10 +1,28 @@
 import argparse
 import os
 import sys
+import logging
 import gitignore_parser
 import tiktoken
 
 output_file = "Context_for_ChatGPT.md"
+
+# Setup logging
+logger = logging.getLogger('SummarizeGPT')
+
+def setup_logging(verbose):
+    """Configure logging based on verbosity level"""
+    logger.setLevel(logging.DEBUG if verbose else logging.ERROR)
+    
+    # Clear any existing handlers
+    logger.handlers = []
+    
+    # Create console handler with appropriate formatting
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG if verbose else logging.ERROR)
+    formatter = logging.Formatter('%(levelname)s: %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
 
 def summarize_directory(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False, max_lines=None):
     directory = directory.replace("\\", "/")
@@ -76,7 +94,7 @@ def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude
                     contents = ''.join(contents)
                     file_contents += f"## {file_path}\n\n```\n{remove_empty_lines(contents)}\n```\n\n"
             except UnicodeDecodeError:
-                print(f"Skipping file {file_path}: unable to decode with UTF-8 encoding.")
+                logger.warning(f"Skipping file {file_path}: unable to decode with UTF-8 encoding.")
     return file_contents
 
 def remove_empty_lines(text):
@@ -88,14 +106,14 @@ def print_summary(summary, encoding_name="cl100k_base"):
         encoding = tiktoken.get_encoding(encoding_name)
         token_count = len(encoding.encode(summary))
     except Exception as e:
-        print(f"Warning: Could not count tokens: {str(e)}")
+        logger.error(f"Could not count tokens: {str(e)}")
         token_count = None
 
     total_lines = summary.count('\n')
     total_chars = len(summary)
     total_bytes = sys.getsizeof(summary.encode('utf-8'))
     
-    print(f"\nSummary Statistics:")
+    print("\nSummary Statistics:")
     print(f"Total Lines: {total_lines}")
     print(f"Total Characters: {total_chars}")
     print(f"Total Bytes: {total_bytes}")
@@ -118,11 +136,16 @@ def main():
                        choices=['cl100k_base', 'p50k_base', 'r50k_base'], 
                        default='cl100k_base',
                        help='Tiktoken encoding to use for token counting (default: cl100k_base)')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
+    
     args = parser.parse_args()
-
+    
+    # Setup logging based on verbosity
+    setup_logging(args.verbose)
+    
     if args.show_docker and args.show_only_docker:
-        print("Error: Cannot use both show_docker and show_only_docker options.")
-        sys.exit()
+        logger.error("Cannot use both show_docker and show_only_docker options.")
+        sys.exit(1)
 
     include_exts = [".{}".format(ext.lower()) for ext in args.include.split(',')] if args.include else None
     exclude_exts = [".{}".format(ext.lower()) for ext in args.exclude.split(',')] if args.exclude else None
@@ -132,9 +155,14 @@ def main():
                                   show_only_docker=args.show_only_docker, 
                                   max_lines=args.max_lines)
     prompt_file = os.path.join(args.directory, output_file)
-    with open(prompt_file, "w", encoding="utf-8") as f:
-        f.write(prompt_md)
-
+    
+    try:
+        with open(prompt_file, "w", encoding="utf-8") as f:
+            f.write(prompt_md)
+    except IOError as e:
+        logger.error(f"Failed to write output file: {str(e)}")
+        sys.exit(1)
+        
     print_summary(prompt_md, encoding_name=args.encoding)
     print(prompt_file)
 
