@@ -7,33 +7,9 @@ import os
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-# Get version from git tag with fallback
-def get_version():
-    # First try: Get version from git tag
-    try:
-        # Get the latest tag using git describe
-        version = subprocess.check_output(['git', 'describe', '--tags']).decode().strip()
-        if version.startswith('v'):
-            version = version.lstrip('v')
-        return version
-    except:
-        pass
-
-    # Second try: Get version from GITHUB_REF_NAME (CI environment)
-    version = os.environ.get('GITHUB_REF_NAME')
-    if version and version.startswith('v'):
-        return version.lstrip('v')
-
-    # Fallback: Read from version file or use default
-    try:
-        with open('VERSION', 'r') as f:
-            return f.read().strip()
-    except:
-        return '0.0'  # final fallback version
-
 setup(
     name="SummarizeGPT",
-    version=get_version(),
+    version=1.3,
     author="Matt Harrison",
     author_email="matt@harrison.consulting",
     description="Tool to summarize directories of code for prompting with LLMs",
