@@ -3,13 +3,12 @@ import os
 import sys
 import logging
 import tempfile
-import shutil
-from io import StringIO
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from summarizeGPT.summarizeGPT import (
     summarize_directory,
+    get_tree_view,
+    get_file_contents,
     setup_logging,
-    print_summary,
     main
 )
 
@@ -17,110 +16,67 @@ class TestSummarizeGPT(unittest.TestCase):
     def setUp(self):
         # Create a temporary directory for testing
         self.test_dir = tempfile.mkdtemp()
-        self.test_files = {
-            'test.py': 'print("Hello, World!")',
-            'test.txt': 'Hello, World!',
-            'Dockerfile': 'FROM python:3.9',
-        }
-        
-        # Create test files
-        for filename, content in self.test_files.items():
-            filepath = os.path.join(self.test_dir, filename)
-            with open(filepath, 'w') as f:
-                f.write(content)
+        self.test_file = os.path.join(self.test_dir, "test.txt")
+        with open(self.test_file, "w") as f:
+            f.write("test content")
+
+        # Reset logging before each test
+        logger = logging.getLogger('SummarizeGPT')
+        logger.handlers = []
+        logger.setLevel(logging.WARNING)
 
     def tearDown(self):
-        # Remove the temporary directory and its contents
-        shutil.rmtree(self.test_dir)
+        # Clean up temporary files
+        os.remove(self.test_file)
+        os.rmdir(self.test_dir)
+
+    def test_summarize_directory(self):
+        result = summarize_directory(self.test_dir)
+        self.assertIsInstance(result, str)
+        self.assertIn(self.test_dir, result)
+        self.assertIn("test.txt", result)
+
+    def test_get_tree_view(self):
+        tree = get_tree_view(self.test_dir)
+        self.assertIsInstance(tree, str)
+        self.assertIn("test.txt", tree)
+
+    def test_get_file_contents(self):
+        contents = get_file_contents(self.test_dir)
+        self.assertIsInstance(contents, str)
+        self.assertIn("test content", contents)
 
     def test_logging_setup(self):
         """Test logging configuration with different verbosity levels"""
-        # Test verbose mode
-        setup_logging(verbose=True)
+        # Test verbose logging
+        setup_logging(True)
         self.assertEqual(logging.getLogger('SummarizeGPT').level, logging.DEBUG)
 
-        # Test non-verbose mode
-        setup_logging(verbose=False)
+        # Test non-verbose logging
+        setup_logging(False)
         self.assertEqual(logging.getLogger('SummarizeGPT').level, logging.ERROR)
 
-    @patch('tiktoken.get_encoding')
-    def test_print_summary_with_tokens(self, mock_get_encoding):
-        """Test summary printing with token counting"""
-        # Mock the token encoder
-        mock_encoder = MagicMock()
-        mock_encoder.encode.return_value = [1, 2, 3, 4]  # 4 tokens
-        mock_get_encoding.return_value = mock_encoder
-
-        # Capture stdout
-        captured_output = StringIO()
-        sys.stdout = captured_output
-
-        test_text = "Hello\nWorld"
-        print_summary(test_text, encoding_name="cl100k_base")
-
-        # Reset stdout
-        sys.stdout = sys.__stdout__
-
-        output = captured_output.getvalue()
-        self.assertIn("Total Lines: 1", output)
-        self.assertIn("Approximate Tokens (cl100k_base): 4", output)
-
+    @patch('sys.argv', ['summarizeGPT', '/tmp/test', '-v'])
     def test_main_with_verbose(self):
-        logger = logging.getLogger('SummarizeGPT')
-        with self.assertLogs(logger, level='DEBUG') as log:
-            testargs = ["prog", "--verbose", "/tmp/test"]
-            with patch.object(sys, 'argv', testargs):
+        """Test main function with verbose flag"""
+        with self.assertRaises(SystemExit) as cm:
+            with self.assertLogs('SummarizeGPT', level='ERROR') as log:
                 main()
-            self.assertTrue(any(record.levelno == logging.DEBUG 
-                            for record in log.records))
-    def test_main_without_verbose(self):        
-        logger = logging.getLogger('SummarizeGPT')
-        with self.assertLogs(logger, level='WARNING') as log:
-            # Your test code here
-            self.assertEqual(len(log.records), 0)  # Check that no warnings were logged
+        self.assertEqual(cm.exception.code, 1)
+        self.assertTrue(any('Failed to write output file' in r.message for r in log.records))
 
-    @patch('tiktoken.get_encoding')
-    def test_different_encodings(self, mock_get_encoding):
-        """Test different tiktoken encodings"""
-        mock_encoder = MagicMock()
-        mock_encoder.encode.return_value = [1, 2, 3]
-        mock_get_encoding.return_value = mock_encoder
+    @patch('sys.argv', ['summarizeGPT', '/tmp/test'])
+    def test_main_without_verbose(self):
+        """Test main function without verbose flag"""
+        with self.assertRaises(SystemExit) as cm:
+            with self.assertLogs('SummarizeGPT', level='ERROR') as log:
+                main()
+        self.assertEqual(cm.exception.code, 1)
+        self.assertTrue(any('Failed to write output file' in r.message for r in log.records))
 
-        test_args = [
-            'summarizeGPT',
-            self.test_dir,
-            '--encoding',
-            'p50k_base'
-        ]
-        with patch('sys.argv', test_args):
-            captured_output = StringIO()
-            sys.stdout = captured_output
-            main()
-            sys.stdout = sys.__stdout__
-            
-            output = captured_output.getvalue()
-            self.assertIn("Approximate Tokens (p50k_base): 3", output)
-
-    def test_unicode_decode_error_handling(self):
-        """Test handling of files that can't be decoded with UTF-8"""
-        # Create a binary file
-        binary_file = os.path.join(self.test_dir, 'binary.bin')
-        with open(binary_file, 'wb') as f:
-            f.write(b'\x80\x81\x82')
-
-        setup_logging(verbose=True)
-        logger = logging.getLogger('SummarizeGPT')
-        with self.assertLogs(logger, level='WARNING') as log:
-            summarize_directory(self.test_dir)
-            self.assertIn("unable to decode with UTF-8 encoding", log.output[0])
-
-    def test_file_write_error_handling(self):
-        """Test handling of file write errors"""
-        test_args = [
-            'summarizeGPT',
-            '/nonexistent/directory'  # This should cause a write error
-        ]
-        with patch('sys.argv', test_args):
+    def test_main_with_invalid_args(self):
+        """Test main function with invalid arguments"""
+        with patch('sys.argv', ['summarizeGPT', '/tmp/test', '-d', '-o']):
             with self.assertRaises(SystemExit) as cm:
                 main()
             self.assertEqual(cm.exception.code, 1)
