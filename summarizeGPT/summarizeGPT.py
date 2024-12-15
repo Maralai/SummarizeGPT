@@ -12,14 +12,15 @@ logger = logging.getLogger('SummarizeGPT')
 
 def setup_logging(verbose):
     """Configure logging based on verbosity level"""
-    logger.setLevel(logging.DEBUG if verbose else logging.ERROR)
-    
+    level = logging.DEBUG if verbose else logging.WARNING
+    logger.setLevel(level)
+
     # Clear any existing handlers
     logger.handlers = []
     
     # Create console handler with appropriate formatting
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG if verbose else logging.ERROR)
+    console_handler.setLevel(level)
     formatter = logging.Formatter('%(levelname)s: %(message)s')
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
