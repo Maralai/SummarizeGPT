@@ -6,6 +6,9 @@ __pycache__/
 # Summaries
 Context_for_ChatGPT.md
 
+# vscode
+.vscode/
+
 # C extensions
 *.so
 
