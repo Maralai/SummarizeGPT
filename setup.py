@@ -25,7 +25,11 @@ def get_version():
         return version.lstrip('v')
 
     # Fallback: Read from version file or use default
-    return '1.3'  # final fallback version
+    try:
+        with open('VERSION', 'r') as f:
+            return f.read().strip()
+    except:
+        return '0.0'  # final fallback version
 
 setup(
     name="SummarizeGPT",
