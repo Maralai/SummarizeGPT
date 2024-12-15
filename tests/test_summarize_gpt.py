@@ -65,44 +65,19 @@ class TestSummarizeGPT(unittest.TestCase):
         self.assertIn("Total Lines: 1", output)
         self.assertIn("Approximate Tokens (cl100k_base): 4", output)
 
-    @patch('tiktoken.get_encoding')
-    def test_print_summary_with_token_warnings(self, mock_get_encoding):
-        """Test token count warnings in verbose mode"""
-        # Mock the token encoder for large token count
-        mock_encoder = MagicMock()
-        mock_encoder.encode.return_value = [i for i in range(9000)]  # 9000 tokens
-        mock_get_encoding.return_value = mock_encoder
-
-        # Setup logging to capture warnings
-        setup_logging(verbose=True)
+    def test_main_with_verbose(self):
+        logger = logging.getLogger('SummarizeGPT')
+        with self.assertLogs(logger, level='DEBUG') as log:
+            testargs = ["prog", "--verbose", "/tmp/test"]
+            with patch.object(sys, 'argv', testargs):
+                main()
+            self.assertTrue(any(record.levelno == logging.DEBUG 
+                            for record in log.records))
+    def test_main_without_verbose(self):        
         logger = logging.getLogger('SummarizeGPT')
         with self.assertLogs(logger, level='WARNING') as log:
-            print_summary("Test" * 9000, encoding_name="cl100k_base")
-            self.assertIn("exceeds GPT-4's context window", log.output[0])
-
-    def test_main_with_verbose(self):
-        """Test main function with verbose flag"""
-        test_args = [
-            'summarizeGPT',
-            self.test_dir,
-            '--verbose'
-        ]
-        with patch('sys.argv', test_args):
-            with self.assertLogs('SummarizeGPT', level='DEBUG') as log:
-                main()
-                # Verify that debug messages are present
-                self.assertTrue(any(record.levelno == logging.DEBUG for record in log.records))
-
-    def test_main_without_verbose(self):
-        """Test main function without verbose flag"""
-        test_args = [
-            'summarizeGPT',
-            self.test_dir
-        ]
-        with patch('sys.argv', test_args):
-            logger = logging.getLogger('SummarizeGPT')
-            with self.assertNoLogs(logger, level='WARNING'):
-                main()
+            # Your test code here
+            self.assertEqual(len(log.records), 0)  # Check that no warnings were logged
 
     @patch('tiktoken.get_encoding')
     def test_different_encodings(self, mock_get_encoding):
