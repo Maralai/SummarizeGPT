@@ -6,12 +6,16 @@ import os
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-# Get version from git tag
-version = os.environ.get('GITHUB_REF_NAME', '0.0.0').lstrip('v')
+# Get version from git tag with fallback
+def get_version():
+    version = os.environ.get('GITHUB_REF_NAME')
+    if version and version.startswith('v'):
+        return version.lstrip('v')
+    return '0.0.0'  # fallback version
 
 setup(
     name="SummarizeGPT",
-    version=version,
+    version=get_version(),
     author="Matt Harrison",
     author_email="matt@harrison.consulting",
     description="Tool to summarize directories of code for prompting with LLMs",
