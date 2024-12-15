@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import gitignore_parser
+import tiktoken
 
 output_file = "Context_for_ChatGPT.md"
 
@@ -81,11 +82,28 @@ def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude
 def remove_empty_lines(text):
     return "\n".join([line for line in text.split("\n") if line.strip()])
 
-def print_summary(summary):
+def print_summary(summary, encoding_name="cl100k_base"):
+    # Get token count using tiktoken
+    try:
+        encoding = tiktoken.get_encoding(encoding_name)
+        token_count = len(encoding.encode(summary))
+    except Exception as e:
+        print(f"Warning: Could not count tokens: {str(e)}")
+        token_count = None
+
     total_lines = summary.count('\n')
     total_chars = len(summary)
     total_bytes = sys.getsizeof(summary.encode('utf-8'))
-    print(f"\nTotal Lines: {total_lines}\nTotal Characters: {total_chars}\nTotal Bytes: {total_bytes}\n")
+    
+    print(f"\nSummary Statistics:")
+    print(f"Total Lines: {total_lines}")
+    print(f"Total Characters: {total_chars}")
+    print(f"Total Bytes: {total_bytes}")
+    
+    if token_count is not None:
+        print(f"Approximate Tokens ({encoding_name}): {token_count}")
+    
+    print()  # Empty line for spacing
 
 def main():
     parser = argparse.ArgumentParser(description='Code summarization tool.')
@@ -96,6 +114,10 @@ def main():
     parser.add_argument('-d', '--show_docker', action='store_true', help='Include docker files')
     parser.add_argument('-o', '--show_only_docker', action='store_true', help='Show only docker files')
     parser.add_argument('-n', '--max-lines', type=int, default=None, help='Maximum number of lines to include from each file')
+    parser.add_argument('--encoding', type=str, 
+                       choices=['cl100k_base', 'p50k_base', 'r50k_base'], 
+                       default='cl100k_base',
+                       help='Tiktoken encoding to use for token counting (default: cl100k_base)')
     args = parser.parse_args()
 
     if args.show_docker and args.show_only_docker:
@@ -105,13 +127,15 @@ def main():
     include_exts = [".{}".format(ext.lower()) for ext in args.include.split(',')] if args.include else None
     exclude_exts = [".{}".format(ext.lower()) for ext in args.exclude.split(',')] if args.exclude else None
     
-    prompt_md = summarize_directory(args.directory, args.gitignore, include_exts, exclude_exts, show_docker=args.show_docker, show_only_docker=args.show_only_docker, max_lines=args.max_lines)
-
+    prompt_md = summarize_directory(args.directory, args.gitignore, include_exts, 
+                                  exclude_exts, show_docker=args.show_docker, 
+                                  show_only_docker=args.show_only_docker, 
+                                  max_lines=args.max_lines)
     prompt_file = os.path.join(args.directory, output_file)
     with open(prompt_file, "w", encoding="utf-8") as f:
         f.write(prompt_md)
 
-    print_summary(prompt_md)
+    print_summary(prompt_md, encoding_name=args.encoding)
     print(prompt_file)
 
 if __name__ == '__main__':
