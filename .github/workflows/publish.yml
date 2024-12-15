@@ -2,13 +2,20 @@ name: Publish to PyPI
 
 on:
   release:
-    types: [created]
+    types: [published, created, edited, released]
+  # Optionally, you can also trigger on tags
+  push:
+    tags:
+      - 'v*'  # Match tags that start with 'v'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # This ensures git history is available
+    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
