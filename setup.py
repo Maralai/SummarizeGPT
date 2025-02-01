@@ -9,7 +9,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="SummarizeGPT",
-    version=1.4,
+    version=1.5,
     author="Matt Harrison",
     author_email="matt@harrison.consulting",
     description="Tool to summarize directories of code for prompting with LLMs",
@@ -23,6 +23,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     ],
     install_requires=[
         'gitignore_parser',
@@ -33,5 +34,5 @@ setup(
             'SummarizeGPT=summarizeGPT.summarizeGPT:main',
         ],
     },
-    license="GPLv3",
+    license="GPL-3.0",
 )
