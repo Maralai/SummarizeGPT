@@ -9,7 +9,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="SummarizeGPT",
-    version=1.3,
+    version=1.4,
     author="Matt Harrison",
     author_email="matt@harrison.consulting",
     description="Tool to summarize directories of code for prompting with LLMs",
