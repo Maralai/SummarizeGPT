@@ -25,16 +25,21 @@ def setup_logging(verbose):
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-def summarize_directory(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False, max_lines=None):
+def summarize_directory(directory, gitignore_file=None, include_exts=None, 
+                       exclude_exts=None, show_docker=False, show_only_docker=False, 
+                       max_lines=None, tree_depth=None, file_depth=None):
     directory = directory.replace("\\", "/")
     prompt_md = f"# Summary of directory: {directory}\n\n"
-    tree_view = get_tree_view(directory, gitignore_file=gitignore_file)
+    tree_view = get_tree_view(directory, gitignore_file=gitignore_file, max_depth=tree_depth)
     prompt_md += "```\n" + tree_view + "\n```\n\n"
-    file_contents = get_file_contents(directory, gitignore_file, include_exts, exclude_exts, show_docker=show_docker, show_only_docker=show_only_docker, max_lines=max_lines)
+    file_contents = get_file_contents(directory, gitignore_file, include_exts, 
+                                    exclude_exts, show_docker=show_docker,
+                                    show_only_docker=show_only_docker, 
+                                    max_lines=max_lines, max_depth=file_depth)
     prompt_md += file_contents
     return prompt_md
 
-def get_tree_view(directory, gitignore_file=None):
+def get_tree_view(directory, gitignore_file=None, max_depth=None):
     tree_view = ""
     if gitignore_file:
         gitignore = gitignore_parser.parse_gitignore(gitignore_file)
@@ -44,20 +49,30 @@ def get_tree_view(directory, gitignore_file=None):
     for root, dirs, files in os.walk(directory):
         if '.git' in root:
             continue
+            
+        level = root.replace(directory, '').count(os.sep) + 1  # +1 because root is level 1
+        
+        # Skip if we've exceeded the maximum depth
+        if max_depth is not None and level > max_depth:
+            dirs[:] = []  # Clear dirs to prevent further recursion
+            continue
+            
         if gitignore:
             dirs[:] = [d for d in dirs if not gitignore(os.path.join(root, d))]
             files = [f for f in files if not gitignore(os.path.join(root, f))]
-        level = root.replace(directory, '').count(os.sep)
-        indent = ' ' * 4 * (level)
+            
+        indent = ' ' * 4 * (level - 1)  # Adjust indent because level starts at 1
         tree_view += f"{indent}{os.path.basename(root)}/\n"
-        sub_indent = ' ' * 4 * (level + 1)
+        sub_indent = ' ' * 4 * level
         for file in files:
             if file == output_file:
                 continue
             tree_view += f"{sub_indent}{file}\n"
     return tree_view
 
-def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude_exts=None, show_docker=False, show_only_docker=False, max_lines=None):
+def get_file_contents(directory, gitignore_file=None, include_exts=None, 
+                     exclude_exts=None, show_docker=False, show_only_docker=False, 
+                     max_lines=None, max_depth=None):
     file_contents = ""
     excluded_files = ['docker', 'Dockerfile']
     if gitignore_file:
@@ -67,6 +82,10 @@ def get_file_contents(directory, gitignore_file=None, include_exts=None, exclude
 
     for root, _, files in os.walk(directory):
         if '.git' in root:
+            continue
+        level = root.replace(directory, '').count(os.sep) + 1  # +1 because root is level 1
+        # Skip if we've exceeded the maximum depth
+        if max_depth is not None and level > max_depth:
             continue
         if gitignore:
             files = [f for f in files if not gitignore(os.path.join(root, f))]
@@ -138,6 +157,12 @@ def main():
                        default='cl100k_base',
                        help='Tiktoken encoding to use for token counting (default: cl100k_base)')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
+    parser.add_argument('-L', '--max-depth', type=int, default=None,
+                       help='Maximum directory depth to traverse for both tree and files (root=1)')
+    parser.add_argument('-Lt', '--tree-depth', type=int, default=None,
+                       help='Maximum directory depth for tree view (root=1)')
+    parser.add_argument('-Lf', '--file-depth', type=int, default=None,
+                       help='Maximum directory depth for file contents (root=1)')
     
     args = parser.parse_args()
     
@@ -151,10 +176,15 @@ def main():
     include_exts = [".{}".format(ext.lower()) for ext in args.include.split(',')] if args.include else None
     exclude_exts = [".{}".format(ext.lower()) for ext in args.exclude.split(',')] if args.exclude else None
     
-    prompt_md = summarize_directory(args.directory, args.gitignore, include_exts, 
-                                  exclude_exts, show_docker=args.show_docker, 
-                                  show_only_docker=args.show_only_docker, 
-                                  max_lines=args.max_lines)
+    tree_depth = args.tree_depth if args.tree_depth is not None else args.max_depth
+    file_depth = args.file_depth if args.file_depth is not None else args.max_depth
+    
+    prompt_md = summarize_directory(args.directory, args.gitignore, include_exts,
+                                  exclude_exts, show_docker=args.show_docker,
+                                  show_only_docker=args.show_only_docker,
+                                  max_lines=args.max_lines,
+                                  tree_depth=tree_depth,
+                                  file_depth=file_depth)
     prompt_file = os.path.join(args.directory, output_file)
     
     try:
