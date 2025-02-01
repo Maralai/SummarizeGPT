@@ -17,6 +17,17 @@ jobs:
       with:
         fetch-depth: 0
     
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+    
+    - name: Clean build directories
+      run: |
+        rm -rf build/
+        rm -rf dist/
+        rm -rf *.egg-info/
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
