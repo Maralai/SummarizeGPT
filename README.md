@@ -26,6 +26,9 @@ SummarizeGPT <directory_path> [options]
 * `-n, --max-lines <number>`: Maximum number of lines to include from each file
 * `--encoding {cl100k_base,p50k_base,r50k_base}`: Tiktoken encoding to use for token counting (default: cl100k_base)
 * `-v, --verbose`: Enable verbose output
+* `-L, --max-depth <number>`: Maximum directory depth to traverse for both tree and files (root=1)
+* `-Lt, --tree-depth <number>`: Maximum directory depth for tree view (root=1)
+* `-Lf, --file-depth <number>`: Maximum directory depth for file contents (root=1)
 
 > Note: On Windows the command can be case insensitive (try 'summarizegpt'), but on Linux it must be 'SummarizeGPT'.
 
@@ -55,6 +58,12 @@ SummarizeGPT /path/to/directory -o  # Show only Docker files
 Limit output and enable verbose logging:
 ```bash
 SummarizeGPT /path/to/directory -n 100 -v
+```
+
+Limit directory depth:
+```bash
+SummarizeGPT /path/to/directory -L 2  # Limit both tree and file depth to 2 levels
+SummarizeGPT /path/to/directory -Lt 3 -Lf 2  # Tree depth of 3, file depth of 2
 ```
 
 ## Output
