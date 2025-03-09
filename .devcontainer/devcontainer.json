@@ -1,0 +1,86 @@
+{
+    "name": "Python Development with Claude Code",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "python-dev",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                // Python interpreter settings
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                // Linting settings
+                "python.linting.enabled": true,
+                "python.linting.flake8Enabled": true,
+                "python.linting.mypyEnabled": true,
+                "python.linting.flake8Path": "/usr/local/bin/flake8",
+                "python.linting.mypyPath": "/usr/local/bin/mypy",
+                // Formatting settings
+                "python.formatting.provider": "black",
+                "python.formatting.blackPath": "/usr/local/bin/black",
+                "editor.formatOnSave": true,
+                // Import organization
+                "editor.codeActionsOnSave": {
+                    "source.organizeImports": "explicit"
+                },
+                "python.sortImports.path": "/usr/local/bin/isort",
+                // Testing
+                "python.testing.pytestEnabled": true,
+                "python.testing.pytestArgs": [
+                    "tests"
+                ],
+                "python.testing.unittestEnabled": false,
+                "python.testing.nosetestsEnabled": false,
+                // Terminal settings
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "terminal.integrated.profiles.linux": {
+                    "bash": {
+                        "path": "/bin/bash",
+                        "icon": "terminal-bash"
+                    }
+                },
+                // Editor settings
+                "editor.rulers": [
+                    100
+                ],
+                "files.trimTrailingWhitespace": true,
+                "files.insertFinalNewline": true,
+                // Git settings
+                "git.autofetch": true,
+                "git.confirmSync": false,
+                // Claude Code settings
+                "claudeCode.enabled": true
+            },
+            "extensions": [
+                // Python essentials
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "ms-python.flake8",
+                "matangover.mypy",
+                // Code quality
+                "editorconfig.editorconfig",
+                "streetsidesoftware.code-spell-checker",
+                "njpwerner.autodocstring",
+                // Git tools
+                "eamodio.gitlens",
+                "github.vscode-github-actions",
+                // File type support
+                "tamasfe.even-better-toml",
+                "redhat.vscode-yaml",
+                // Claude Code integration
+                "anthropic.claude-code",
+                // Testing
+                "ms-vscode.test-adapter-converter",
+                "hbenl.vscode-test-explorer"
+            ]
+        }
+    },
+    "remoteUser": "vscode",
+    "postCreateCommand": "bash .devcontainer/scripts/setup-dev.sh",
+    "postStartCommand": "echo 'Development environment with Claude Code is ready!'",
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+    // Use 'forwardPorts' to make a list of ports inside the container available locally.
+    "forwardPorts": []
+}

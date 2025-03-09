@@ -9,6 +9,7 @@ from summarizeGPT.summarizeGPT import (
     get_tree_view,
     get_file_contents,
     setup_logging,
+    discover_gitignore,
     main,
     logger,
     output_file
@@ -76,6 +77,7 @@ class TestSummarizeGPT(unittest.TestCase):
         mock_args.return_value = type('Args', (), {
             'directory': self.test_dir,
             'gitignore': None,
+            'auto_gitignore': False,
             'include': None,
             'exclude': None,
             'show_docker': True,
@@ -102,6 +104,7 @@ class TestSummarizeGPT(unittest.TestCase):
         mock_args.return_value = type('Args', (), {
             'directory': self.test_dir,
             'gitignore': None,
+            'auto_gitignore': False,
             'include': None,
             'exclude': None,
             'show_docker': False,
@@ -183,6 +186,131 @@ class TestSummarizeGPT(unittest.TestCase):
             self.assertIn("file1.txt", result)
             self.assertIn("level1 content", result)
             self.assertNotIn("level2 content", result)
+
+    def test_discover_gitignore_current_dir(self):
+        """Test discovering .gitignore in current directory"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Create a .gitignore file in the test directory
+            gitignore_path = os.path.join(tmp_dir, '.gitignore')
+            with open(gitignore_path, 'w') as f:
+                f.write("*.tmp\n")
+            
+            # Test discovery
+            with patch('logging.Logger.info') as mock_logger:
+                result = discover_gitignore(tmp_dir)
+                self.assertEqual(result, gitignore_path)
+                mock_logger.assert_called_with(f"Found .gitignore in current directory: {gitignore_path}")
+
+    def test_discover_gitignore_parent_dir(self):
+        """Test discovering .gitignore in parent directory"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Create a nested structure
+            child_dir = os.path.join(tmp_dir, 'child')
+            os.makedirs(child_dir)
+            
+            # Create a .gitignore in the parent directory
+            gitignore_path = os.path.join(tmp_dir, '.gitignore')
+            with open(gitignore_path, 'w') as f:
+                f.write("*.tmp\n")
+            
+            # Test discovery from child directory
+            with patch('logging.Logger.info') as mock_logger:
+                result = discover_gitignore(child_dir)
+                self.assertEqual(result, gitignore_path)
+                mock_logger.assert_called_with(f"Found .gitignore in parent directory: {gitignore_path}")
+
+    def test_discover_gitignore_child_dir(self):
+        """Test discovering .gitignore in child directory"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Create a nested structure
+            child_dir = os.path.join(tmp_dir, 'child')
+            os.makedirs(child_dir)
+            
+            # Create a .gitignore in the child directory
+            gitignore_path = os.path.join(child_dir, '.gitignore')
+            with open(gitignore_path, 'w') as f:
+                f.write("*.tmp\n")
+            
+            # Test discovery from parent directory
+            with patch('logging.Logger.info') as mock_logger:
+                # Patch os.walk to only return our controlled directory structure
+                with patch('os.walk') as mock_walk:
+                    mock_walk.return_value = [
+                        (tmp_dir, ['child'], []),
+                        (child_dir, [], ['.gitignore'])
+                    ]
+                    result = discover_gitignore(tmp_dir)
+                    self.assertEqual(result, gitignore_path)
+                    mock_logger.assert_called_with(f"Found .gitignore in child directory: {gitignore_path}")
+
+    def test_discover_gitignore_not_found(self):
+        """Test behavior when no .gitignore file is found"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with patch('logging.Logger.info') as mock_logger:
+                # Patch os.walk and os.path.isfile to ensure no .gitignore is found
+                with patch('os.walk') as mock_walk:
+                    mock_walk.return_value = [(tmp_dir, [], [])]
+                    with patch('os.path.isfile') as mock_isfile:
+                        mock_isfile.return_value = False
+                        result = discover_gitignore(tmp_dir)
+                        self.assertIsNone(result)
+                        mock_logger.assert_called_with("No .gitignore file found.")
+
+    @patch('argparse.ArgumentParser.parse_args')
+    @patch('summarizeGPT.summarizeGPT.discover_gitignore')
+    def test_auto_gitignore_option(self, mock_discover, mock_args):
+        """Test the -ig flag for auto-discovering gitignore files"""
+        mock_args.return_value = type('Args', (), {
+            'directory': self.test_dir,
+            'gitignore': None,
+            'auto_gitignore': True,
+            'include': None,
+            'exclude': None,
+            'show_docker': False,
+            'show_only_docker': False,
+            'max_lines': None,
+            'encoding': 'cl100k_base',
+            'verbose': False,
+            'tree_depth': None,
+            'file_depth': None,
+            'max_depth': None
+        })()
+        
+        # Set up mock to return a fake gitignore path
+        mock_discover.return_value = '/mock/path/.gitignore'
+        
+        with patch('builtins.open', create=True) as mock_open:
+            mock_open.return_value.__enter__.return_value.write = lambda x: None
+            with patch('logging.Logger.info') as mock_logger:
+                main()
+                mock_discover.assert_called_once_with(self.test_dir)
+                mock_logger.assert_any_call("Using auto-discovered .gitignore: /mock/path/.gitignore")
+
+    @patch('argparse.ArgumentParser.parse_args')
+    def test_explicit_gitignore_precedence(self, mock_args):
+        """Test that explicit gitignore takes precedence over auto-discovery"""
+        mock_args.return_value = type('Args', (), {
+            'directory': self.test_dir,
+            'gitignore': '/explicit/path/.gitignore',
+            'auto_gitignore': True,
+            'include': None,
+            'exclude': None,
+            'show_docker': False,
+            'show_only_docker': False,
+            'max_lines': None,
+            'encoding': 'cl100k_base',
+            'verbose': False,
+            'tree_depth': None,
+            'file_depth': None,
+            'max_depth': None
+        })()
+        
+        with patch('builtins.open', create=True) as mock_open:
+            mock_open.return_value.__enter__.return_value.write = lambda x: None
+            with patch('summarizeGPT.summarizeGPT.discover_gitignore') as mock_discover:
+                main()
+                # Verify discover_gitignore was not called because explicit path was provided
+                mock_discover.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  python-dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      # Mount workspace
+      - ..:/workspace:cached
+      # Mount Bash history
+      - bash-history:/home/vscode/.bash_history
+      # Mount Git config
+      - ~/.gitconfig:/home/vscode/.gitconfig:cached
+      # Mount SSH keys if they exist
+      - ~/.ssh:/home/vscode/.ssh:cached
+      # Mount Claude config if it exists
+      - ~/.config/claude:/home/vscode/.config/claude:cached
+    command: sleep infinity
+    environment:
+      - PYTHONPATH=/workspace
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      # Claude settings
+      - CLAUDE_CLI_ENABLED=true
+      # Project-specific config (override in your project)
+      - PACKAGE_NAME=summarizeGPT
+      - SOURCE_DIRS=summarizeGPT
+      - TEST_DIRS=tests
+    # Overrides default command to ensure container doesn't exit
+    entrypoint: /usr/local/bin/entrypoint.sh
+    # Keep container running for VS Code to attach
+    tty: true
+    # Allow Claude to use secure APIs
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+
+volumes:
+  bash-history:

@@ -1,0 +1,8 @@
+[flake8]
+max-line-length = 100
+exclude = .git,__pycache__,build,dist,*.egg-info
+per-file-ignores =
+    # Allow unused imports in __init__.py
+    __init__.py: F401
+    # Ignore line length on test files
+    tests/*.py: E501

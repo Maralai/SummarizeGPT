@@ -1,0 +1,1 @@
+/workspace/.devcontainer/scripts/setup-dev.sh

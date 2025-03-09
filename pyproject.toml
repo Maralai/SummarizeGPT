@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--cov=summarizeGPT --cov-report=term-missing --no-cov-on-fail"
+testpaths = ["tests"]

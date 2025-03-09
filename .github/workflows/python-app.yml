@@ -1,22 +1,46 @@
 name: Test Summarize GPT
 
-on: [push]
+on: 
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10']
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
       with:
-        python-version: 3.8
+        python-version: ${{ matrix.python-version }}
+        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Run tests
+        python -m pip install -e .
+        python -m pip install -r .devcontainer/config/requirements-dev.txt
+        
+    - name: Lint
       run: |
-        python -m unittest tests/test_summarize_gpt.py
+        # Make scripts executable
+        chmod +x .devcontainer/scripts/*.sh
+        # Run linting with specified source directory
+        SOURCE_DIRS="summarizeGPT" TEST_DIRS="tests" CONFIG_DIR=".devcontainer/config" bash .devcontainer/scripts/lint.sh
+        
+    - name: Test
+      run: |
+        # Run tests with specified package
+        PACKAGE_NAME="summarizeGPT" CONFIG_DIR=".devcontainer/config" bash .devcontainer/scripts/test.sh
+        
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false

@@ -10,6 +10,48 @@ output_file = "Context_for_ChatGPT.md"
 # Setup logging
 logger = logging.getLogger('SummarizeGPT')
 
+def discover_gitignore(directory):
+    """
+    Auto-discover the nearest .gitignore file with the following search priority:
+    1. Current directory
+    2. Parent directories (up the tree)
+    3. Child directories (down the tree)
+    
+    Args:
+        directory (str): The starting directory for the search
+        
+    Returns:
+        str or None: Path to the discovered .gitignore file, or None if not found
+    """
+    # Normalize directory path
+    directory = os.path.abspath(directory)
+    
+    # 1. Check current directory
+    current_gitignore = os.path.join(directory, '.gitignore')
+    if os.path.isfile(current_gitignore):
+        logger.info(f"Found .gitignore in current directory: {current_gitignore}")
+        return current_gitignore
+    
+    # 2. Check parent directories (up)
+    parent_dir = os.path.dirname(directory)
+    while parent_dir and parent_dir != directory:
+        parent_gitignore = os.path.join(parent_dir, '.gitignore')
+        if os.path.isfile(parent_gitignore):
+            logger.info(f"Found .gitignore in parent directory: {parent_gitignore}")
+            return parent_gitignore
+        directory = parent_dir  # Move up one level
+        parent_dir = os.path.dirname(directory)
+    
+    # 3. Check child directories (down)
+    for root, dirs, files in os.walk(directory):
+        if '.gitignore' in files:
+            child_gitignore = os.path.join(root, '.gitignore')
+            logger.info(f"Found .gitignore in child directory: {child_gitignore}")
+            return child_gitignore
+    
+    logger.info("No .gitignore file found.")
+    return None
+
 def setup_logging(verbose):
     """Configure logging based on verbosity level"""
     level = logging.DEBUG if verbose else logging.WARNING
@@ -147,6 +189,8 @@ def main():
     parser = argparse.ArgumentParser(description='Code summarization tool.')
     parser.add_argument('directory', type=str, help='Path to the directory to summarize')
     parser.add_argument('--gitignore', type=str, help='Path to the gitignore file')
+    parser.add_argument('-ig', '--auto-gitignore', action='store_true', 
+                       help='Auto-discover and use nearest .gitignore file')
     parser.add_argument('--include', type=str, help='Comma-separated list of file extensions to include')
     parser.add_argument('--exclude', type=str, help='Comma-separated list of file extensions to exclude')
     parser.add_argument('-d', '--show_docker', action='store_true', help='Include docker files')
@@ -172,6 +216,15 @@ def main():
     if args.show_docker and args.show_only_docker:
         logger.error("Cannot use both show_docker and show_only_docker options.")
         sys.exit(1)
+    
+    # Handle gitignore auto-discovery
+    gitignore_path = args.gitignore
+    if args.auto_gitignore and not gitignore_path:
+        gitignore_path = discover_gitignore(args.directory)
+        if gitignore_path:
+            logger.info(f"Using auto-discovered .gitignore: {gitignore_path}")
+        else:
+            logger.info("No .gitignore file found.")
 
     include_exts = [".{}".format(ext.lower()) for ext in args.include.split(',')] if args.include else None
     exclude_exts = [".{}".format(ext.lower()) for ext in args.exclude.split(',')] if args.exclude else None
@@ -179,7 +232,7 @@ def main():
     tree_depth = args.tree_depth if args.tree_depth is not None else args.max_depth
     file_depth = args.file_depth if args.file_depth is not None else args.max_depth
     
-    prompt_md = summarize_directory(args.directory, args.gitignore, include_exts,
+    prompt_md = summarize_directory(args.directory, gitignore_path, include_exts,
                                   exclude_exts, show_docker=args.show_docker,
                                   show_only_docker=args.show_only_docker,
                                   max_lines=args.max_lines,
